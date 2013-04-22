@@ -1,18 +1,17 @@
 (function($) {
     $.extend(true, window, {
-        Slick: {
-            Data: {
-                DataView: DataView,
-                Aggregators: {
-                    Avg: AvgAggregator,
-                    Min: MinAggregator,
-                    Max: MaxAggregator,
-                    Sum: SumAggregator
+        Slick : {
+            Data : {
+                DataView : DataView,
+                Aggregators : {
+                    Avg : AvgAggregator,
+                    Min : MinAggregator,
+                    Max : MaxAggregator,
+                    Sum : SumAggregator
                 }
             }
         }
     });
-
 
     /***
      * A sample Model implementation.
@@ -25,20 +24,27 @@
         var self = this;
 
         var defaults = {
-            groupItemMetadataProvider: null,
-            inlineFilters: false
+            groupItemMetadataProvider : null,
+            inlineFilters : false
         };
 
-
         // private
-        var idProperty = "id"; // property holding a unique row id
-        var items = []; // data by index
-        var rows = []; // data by row
-        var idxById = {}; // indexes by id
-        var rowsById = null; // rows by id; lazy-calculated
-        var filter = null; // filter function
-        var updated = null; // updated item ids
-        var suspend = false; // suspends the recalculation
+        var idProperty = "id";
+        // property holding a unique row id
+        var items = [];
+        // data by index
+        var rows = [];
+        // data by row
+        var idxById = {};
+        // indexes by id
+        var rowsById = null;
+        // rows by id; lazy-calculated
+        var filter = null;
+        // filter function
+        var updated = null;
+        // updated item ids
+        var suspend = false;
+        // suspends the recalculation
         var sortAsc = true;
         var fastSortField;
         var sortComparer;
@@ -51,22 +57,25 @@
         var filterCache = [];
 
         // grouping
-    var groupingInfoDefaults = {
-      getter: null,
-      formatter: null,
-      comparer: function(a, b) { return a.value - b.value; },
-      predefinedValues: [],
-      aggregators: [],
-      aggregateEmpty: false,
-      aggregateCollapsed: false,
-      aggregateChildGroups: false,
-      collapsed: false,
-      displayTotalsRow: true
-    };
-    var groupingInfos = [];
+        var groupingInfoDefaults = {
+            getter : null,
+            formatter : null,
+            comparer : function(a, b) {
+                return a.value - b.value;
+            },
+            predefinedValues : [],
+            aggregators : [],
+            aggregateEmpty : false,
+            aggregateCollapsed : false,
+            aggregateChildGroups : false,
+            collapsed : false,
+            displayTotalsRow : true
+        };
+        var groupingInfos = [];
         var groups = [];
-    var toggledGroupsByLevel = [];
-    var groupingDelimiter = ':|:';
+        var toggledGroupsByLevel = [];
+        var groupingDelimiter = ':|:';
+        var rowMetaData = {};
 
         var pagesize = 0;
         var pagenum = 0;
@@ -78,7 +87,6 @@
         var onPagingInfoChanged = new Slick.Event();
 
         options = $.extend(true, {}, defaults, options);
-
 
         function beginUpdate() {
             suspend = true;
@@ -101,20 +109,27 @@
             startingIndex = startingIndex || 0;
             var id;
             for (var i = startingIndex, l = items.length; i < l; i++) {
-                id = items[i][idProperty];
-                if (id === undefined) {
-                    throw "Each data element must implement a unique 'id' property";
+                if (items[i] !== undefined) {
+                    id = items[i][idProperty];
+                    if (id === undefined) {
+                        throw "Each data element must implement a unique 'id' property";
+                    }
+                    idxById[id] = i;
+                } else {
+                    id = i;
+                    idxById[id] = i;
                 }
-                idxById[id] = i;
             }
         }
 
         function ensureIdUniqueness() {
             var id;
             for (var i = 0, l = items.length; i < l; i++) {
-                id = items[i][idProperty];
-                if (id === undefined || idxById[id] !== i) {
-                    throw "Each data element must implement a unique 'id' property";
+                if (items[i] !== undefined) {
+                    id = items[i][idProperty];
+                    if (id === undefined || idxById[id] !== i) {
+                        throw "Each data element must implement a unique 'id' property";
+                    }
                 }
             }
         }
@@ -152,10 +167,10 @@
         function getPagingInfo() {
             var totalPages = pagesize ? Math.max(1, Math.ceil(totalRows / pagesize)) : 1;
             return {
-                pageSize: pagesize,
-                pageNum: pagenum,
-                totalRows: totalRows,
-                totalPages: totalPages
+                pageSize : pagesize,
+                pageNum : pagenum,
+                totalRows : totalRows,
+                totalPages : totalPages
             };
         }
 
@@ -186,7 +201,7 @@
             fastSortField = field;
             sortComparer = null;
             var oldToString = Object.prototype.toString;
-            Object.prototype.toString = (typeof field == "function") ? field : function() {
+            Object.prototype.toString = ( typeof field == "function") ? field : function() {
                 return this[field]
             };
             // an extra reversal for descending sort keeps the sort stable
@@ -221,66 +236,66 @@
             refresh();
         }
 
-    function getGrouping() {
-      return groupingInfos;
-    }
+        function getGrouping() {
+            return groupingInfos;
+        }
 
-    function setGrouping(groupingInfo) {
+        function setGrouping(groupingInfo) {
             if (!options.groupItemMetadataProvider) {
                 options.groupItemMetadataProvider = new Slick.Data.GroupItemMetadataProvider();
             }
 
             groups = [];
-      toggledGroupsByLevel = [];
-      groupingInfo = groupingInfo || [];
-      groupingInfos = (groupingInfo instanceof Array) ? groupingInfo : [groupingInfo];
+            toggledGroupsByLevel = [];
+            groupingInfo = groupingInfo || [];
+            groupingInfos = ( groupingInfo instanceof Array) ? groupingInfo : [groupingInfo];
 
-      for (var i = 0; i < groupingInfos.length; i++) {
-        var gi = groupingInfos[i] = $.extend(true, {}, groupingInfoDefaults, groupingInfos[i]);
-        gi.getterIsAFn = typeof gi.getter === "function";
+            for (var i = 0; i < groupingInfos.length; i++) {
+                var gi = groupingInfos[i] = $.extend(true, {}, groupingInfoDefaults, groupingInfos[i]);
+                gi.getterIsAFn = typeof gi.getter === "function";
 
-        // pre-compile accumulator loops
-        gi.compiledAccumulators = [];
-        var idx = gi.aggregators.length;
-        while (idx--) {
-          gi.compiledAccumulators[idx] = compileAccumulatorLoop(gi.aggregators[idx]);
-        }
+                // pre-compile accumulator loops
+                gi.compiledAccumulators = [];
+                var idx = gi.aggregators.length;
+                while (idx--) {
+                    gi.compiledAccumulators[idx] = compileAccumulatorLoop(gi.aggregators[idx]);
+                }
 
-        toggledGroupsByLevel[i] = {};
+                toggledGroupsByLevel[i] = {};
             }
 
             refresh();
         }
 
-    /**
-     * @deprecated Please use {@link setGrouping}.
-     */
-    function groupBy(valueGetter, valueFormatter, sortComparer) {
-      if (valueGetter == null) {
-        setGrouping([]);
-        return;
-      }
+        /**
+         * @deprecated Please use {@link setGrouping}.
+         */
+        function groupBy(valueGetter, valueFormatter, sortComparer) {
+            if (valueGetter == null) {
+                setGrouping([]);
+                return;
+            }
 
-      setGrouping({
-        getter: valueGetter,
-        formatter: valueFormatter,
-        comparer: sortComparer
-      });
-    }
+            setGrouping({
+                getter : valueGetter,
+                formatter : valueFormatter,
+                comparer : sortComparer
+            });
+        }
 
-    /**
-     * @deprecated Please use {@link setGrouping}.
-     */
-    function setAggregators(groupAggregators, includeCollapsed) {
-      if (!groupingInfos.length) {
-        throw new Error("At least must setGrouping must be specified before calling setAggregators().");
-      }
+        /**
+         * @deprecated Please use {@link setGrouping}.
+         */
+        function setAggregators(groupAggregators, includeCollapsed) {
+            if (!groupingInfos.length) {
+                throw new Error("At least must setGrouping must be specified before calling setAggregators().");
+            }
 
-      groupingInfos[0].aggregators = groupAggregators;
-      groupingInfos[0].aggregateCollapsed = includeCollapsed;
+            groupingInfos[0].aggregators = groupAggregators;
+            groupingInfos[0].aggregateCollapsed = includeCollapsed;
 
-      setGrouping(groupingInfos);
-    }
+            setGrouping(groupingInfos);
+        }
 
         function getItemByIdx(i) {
             return items[i];
@@ -373,13 +388,25 @@
             return rows[i];
         }
 
+        function setItemMetadata(data, i) {
+            var item = rows[i];
+            if (item !== undefined) {
+                for (var key in data) {
+                    if (rowMetaData[i] == undefined) {
+                        rowMetaData[i] = {};
+                    }
+                    rowMetaData[i][key] = data[key];
+                }
+            }
+        }
+
         function getItemMetadata(i) {
             var item = rows[i];
             if (item === undefined) {
                 return null;
             }
 
-      // overrides for setGrouping rows
+            // overrides for setGrouping rows
             if (item.__group) {
                 return options.groupItemMetadataProvider.getGroupRowMetadata(item);
             }
@@ -390,111 +417,116 @@
             }
 
             if (options.groupItemMetadataProvider) {
-                return options.groupItemMetadataProvider.getRowMetadata(item);
+                //return options.groupItemMetadataProvider.getRowMetadata(item);
+                //modified the original code for supporting the expandrow with grouping feature
+                var rowMetadata = options.groupItemMetadataProvider.getRowMetadata(item);
+                if (rowMetadata) {
+                    return rowMetadata;
+                }
             }
 
-            return null;
+            return rowMetaData[i];
         }
 
-    function expandCollapseAllGroups(level, collapse) {
-      if (level == null) {
-        for (var i = 0; i < groupingInfos.length; i++) {
-          toggledGroupsByLevel[i] = {};
-          groupingInfos[i].collapsed = collapse;
-        }
-      } else {
-        toggledGroupsByLevel[level] = {};
-        groupingInfos[level].collapsed = collapse;
-      }
+        function expandCollapseAllGroups(level, collapse) {
+            if (level == null) {
+                for (var i = 0; i < groupingInfos.length; i++) {
+                    toggledGroupsByLevel[i] = {};
+                    groupingInfos[i].collapsed = collapse;
+                }
+            } else {
+                toggledGroupsByLevel[level] = {};
+                groupingInfos[level].collapsed = collapse;
+            }
             refresh();
         }
 
-    /**
-     * @param level {Number} Optional level to collapse.  If not specified, applies to all levels.
-     */
-    function collapseAllGroups(level) {
-      expandCollapseAllGroups(level, true);
-    }
+        /**
+         * @param level {Number} Optional level to collapse.  If not specified, applies to all levels.
+         */
+        function collapseAllGroups(level) {
+            expandCollapseAllGroups(level, true);
+        }
 
-    /**
-     * @param level {Number} Optional level to expand.  If not specified, applies to all levels.
-     */
-    function expandAllGroups(level) {
-      expandCollapseAllGroups(level, false);
-    }
+        /**
+         * @param level {Number} Optional level to expand.  If not specified, applies to all levels.
+         */
+        function expandAllGroups(level) {
+            expandCollapseAllGroups(level, false);
+        }
 
-    function expandCollapseGroup(level, groupingKey, collapse) {
-      toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
+        function expandCollapseGroup(level, groupingKey, collapse) {
+            toggledGroupsByLevel[level][groupingKey] = groupingInfos[level].collapsed ^ collapse;
             refresh();
         }
 
-    /**
-     * @param varArgs Either a Slick.Group's "groupingKey" property, or a
-     *     variable argument list of grouping values denoting a unique path to the row.  For
-     *     example, calling collapseGroup('high', '10%') will collapse the '10%' subgroup of
-     *     the 'high' setGrouping.
-     */
-    function collapseGroup(varArgs) {
-      var args = Array.prototype.slice.call(arguments);
-      var arg0 = args[0];
-      if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
-        expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, true);
-      } else {
-        expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), true);
-      }
-    }
+        /**
+         * @param varArgs Either a Slick.Group's "groupingKey" property, or a
+         *     variable argument list of grouping values denoting a unique path to the row.  For
+         *     example, calling collapseGroup('high', '10%') will collapse the '10%' subgroup of
+         *     the 'high' setGrouping.
+         */
+        function collapseGroup(varArgs) {
+            var args = Array.prototype.slice.call(arguments);
+            var arg0 = args[0];
+            if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
+                expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, true);
+            } else {
+                expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), true);
+            }
+        }
 
-    /**
-     * @param varArgs Either a Slick.Group's "groupingKey" property, or a
-     *     variable argument list of grouping values denoting a unique path to the row.  For
-     *     example, calling expandGroup('high', '10%') will expand the '10%' subgroup of
-     *     the 'high' setGrouping.
-     */
-    function expandGroup(varArgs) {
-      var args = Array.prototype.slice.call(arguments);
-      var arg0 = args[0];
-      if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
-        expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, false);
-      } else {
-        expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
-      }
-    }
+        /**
+         * @param varArgs Either a Slick.Group's "groupingKey" property, or a
+         *     variable argument list of grouping values denoting a unique path to the row.  For
+         *     example, calling expandGroup('high', '10%') will expand the '10%' subgroup of
+         *     the 'high' setGrouping.
+         */
+        function expandGroup(varArgs) {
+            var args = Array.prototype.slice.call(arguments);
+            var arg0 = args[0];
+            if (args.length == 1 && arg0.indexOf(groupingDelimiter) != -1) {
+                expandCollapseGroup(arg0.split(groupingDelimiter).length - 1, arg0, false);
+            } else {
+                expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
+            }
+        }
 
         function getGroups() {
             return groups;
         }
 
-    function extractGroups(rows, parentGroup) {
+        function extractGroups(rows, parentGroup) {
             var group;
             var val;
             var groups = [];
             var groupsByVal = [];
             var r;
-      var level = parentGroup ? parentGroup.level + 1 : 0;
-      var gi = groupingInfos[level];
+            var level = parentGroup ? parentGroup.level + 1 : 0;
+            var gi = groupingInfos[level];
 
-      for (var i = 0, l = gi.predefinedValues.length; i < l; i++) {
-        val = gi.predefinedValues[i];
-        group = groupsByVal[val];
-        if (!group) {
-          group = new Slick.Group();
-          group.value = val;
-          group.level = level;
-          group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
-          groups[groups.length] = group;
-          groupsByVal[val] = group;
-        }
-      }
-
-            for (var i = 0, l = rows.length; i < l; i++) {
-                r = rows[i];
-        val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
+            for (var i = 0, l = gi.predefinedValues.length; i < l; i++) {
+                val = gi.predefinedValues[i];
                 group = groupsByVal[val];
                 if (!group) {
                     group = new Slick.Group();
                     group.value = val;
-          group.level = level;
-          group.groupingKey = (parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
+                    group.level = level;
+                    group.groupingKey = ( parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
+                    groups[groups.length] = group;
+                    groupsByVal[val] = group;
+                }
+            }
+
+            for (var i = 0, l = rows.length; i < l; i++) {
+                r = rows[i];
+                val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
+                group = groupsByVal[val];
+                if (!group) {
+                    group = new Slick.Group();
+                    group.value = val;
+                    group.level = level;
+                    group.groupingKey = ( parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
                     groups[groups.length] = group;
                     groupsByVal[val] = group;
                 }
@@ -502,98 +534,95 @@
                 group.rows[group.count++] = r;
             }
 
-      if (level < groupingInfos.length - 1) {
-        for (var i = 0; i < groups.length; i++) {
-          group = groups[i];
-          group.groups = extractGroups(group.rows, group);
-        }
-      }
+            if (level < groupingInfos.length - 1) {
+                for (var i = 0; i < groups.length; i++) {
+                    group = groups[i];
+                    group.groups = extractGroups(group.rows, group);
+                }
+            }
 
-      groups.sort(groupingInfos[level].comparer);
+            groups.sort(groupingInfos[level].comparer);
 
             return groups;
         }
 
         // TODO:  lazy totals calculation
 
-
         function calculateGroupTotals(group) {
             // TODO:  try moving iterating over groups into compiled accumulator
-      var gi = groupingInfos[group.level];
-      var isLeafLevel = (group.level == groupingInfos.length);
+            var gi = groupingInfos[group.level];
+            var isLeafLevel = (group.level == groupingInfos.length);
             var totals = new Slick.GroupTotals();
-      var agg, idx = gi.aggregators.length;
+            var agg, idx = gi.aggregators.length;
             while (idx--) {
-        agg = gi.aggregators[idx];
+                agg = gi.aggregators[idx];
                 agg.init();
-        gi.compiledAccumulators[idx].call(agg,
-            (!isLeafLevel && gi.aggregateChildGroups) ? group.groups : group.rows);
-                agg.storeResult(totals);
+                gi.compiledAccumulators[idx].call(agg, (!isLeafLevel && gi.aggregateChildGroups) ? group.groups : group.rows);
+                agg.storeResult(totals, group);
             }
             totals.group = group;
             group.totals = totals;
         }
 
-    function calculateTotals(groups, level) {
-      level = level || 0;
-      var gi = groupingInfos[level];
-      var idx = groups.length, g;
-            while (idx--) {
-        g = groups[idx];
-
-        if (g.collapsed && !gi.aggregateCollapsed) {
-          continue;
-        }
-
-        // Do a depth-first aggregation so that parent setGrouping aggregators can access subgroup totals.
-        if (g.groups) {
-          calculateTotals(g.groups, level + 1);
-        }
-
-        if (gi.aggregators.length && (
-            gi.aggregateEmpty || g.rows.length || (g.groups && g.groups.length))) {
-          calculateGroupTotals(g);
-        }
-      }
-    }
-
-    function finalizeGroups(groups, level) {
-      level = level || 0;
-      var gi = groupingInfos[level];
-      var groupCollapsed = gi.collapsed;
-      var toggledGroups = toggledGroupsByLevel[level];
-        var idx = groups.length, g;
+        function calculateTotals(groups, level) {
+            level = level || 0;
+            var gi = groupingInfos[level];
+            var idx = groups.length, g;
             while (idx--) {
                 g = groups[idx];
-        g.collapsed = groupCollapsed ^ toggledGroups[g.groupingKey];
-        g.title = gi.formatter ? gi.formatter(g) : g.value;
 
-        if (g.groups) {
-          finalizeGroups(g.groups, level + 1);
-          // Let the non-leaf setGrouping rows get garbage-collected.
-          // They may have been used by aggregates that go over all of the descendants,
-          // but at this point they are no longer needed.
-          g.rows = [];
-        }
+                if (g.collapsed && !gi.aggregateCollapsed) {
+                    continue;
+                }
+
+                // Do a depth-first aggregation so that parent setGrouping aggregators can access subgroup totals.
+                if (g.groups) {
+                    calculateTotals(g.groups, level + 1);
+                }
+
+                if (gi.aggregators.length && (gi.aggregateEmpty || g.rows.length || (g.groups && g.groups.length))) {
+                    calculateGroupTotals(g);
+                }
             }
         }
 
-    function flattenGroupedRows(groups, level) {
-      level = level || 0;
-      var gi = groupingInfos[level];
-      var groupedRows = [], rows, gl = 0, g;
+        function finalizeGroups(groups, level) {
+            level = level || 0;
+            var gi = groupingInfos[level];
+            var groupCollapsed = gi.collapsed;
+            var toggledGroups = toggledGroupsByLevel[level];
+            var idx = groups.length, g;
+            while (idx--) {
+                g = groups[idx];
+                g.collapsed = groupCollapsed ^ toggledGroups[g.groupingKey];
+                g.title = gi.formatter ? gi.formatter(g) : g.value;
+
+                if (g.groups) {
+                    finalizeGroups(g.groups, level + 1);
+                    // Let the non-leaf setGrouping rows get garbage-collected.
+                    // They may have been used by aggregates that go over all of the descendants,
+                    // but at this point they are no longer needed.
+                    g.rows = [];
+                }
+            }
+        }
+
+        function flattenGroupedRows(groups, level) {
+            level = level || 0;
+            var gi = groupingInfos[level];
+            var groupedRows = [], rows, gl = 0, g;
             for (var i = 0, l = groups.length; i < l; i++) {
                 g = groups[i];
                 groupedRows[gl++] = g;
 
                 if (!g.collapsed) {
-          rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.rows;
-          for (var j = 0, jj = rows.length; j < jj; j++) {
-            groupedRows[gl++] = rows[j];
+                    rows = g.groups ? flattenGroupedRows(g.groups, level + 1) : g.rows;
+                    for (var j = 0, jj = rows.length; j < jj; j++) {
+                        groupedRows[gl++] = rows[j];
                     }
                 }
 
-        if (g.totals && gi.displayTotalsRow && (!g.collapsed || gi.aggregateCollapsed)) {
+                if (g.totals && gi.displayTotalsRow && (!g.collapsed || gi.aggregateCollapsed)) {
                     groupedRows[gl++] = g.totals;
                 }
             }
@@ -604,15 +633,14 @@
             var fnRegex = /^function[^(]*\(([^)]*)\)\s*{([\s\S]*)}$/;
             var matches = fn.toString().match(fnRegex);
             return {
-                params: matches[1].split(","),
-                body: matches[2]
+                params : matches[1].split(","),
+                body : matches[2]
             };
         }
 
         function compileAccumulatorLoop(aggregator) {
             var accumulatorInfo = getFunctionInfo(aggregator.accumulate);
             var fn = new Function("_items", "for (var " + accumulatorInfo.params[0] + ", _i=0, _il=_items.length; _i<_il; _i++) {" + accumulatorInfo.params[0] + " = _items[_i]; " + accumulatorInfo.body + "}");
-          "}"
             fn.displayName = fn.name = "compiledAccumulatorLoop";
             return fn;
         }
@@ -660,8 +688,7 @@
         }
 
         function uncompiledFilter(items, args) {
-            var retval = [],
-                idx = 0;
+            var retval = [], idx = 0;
 
             for (var i = 0, ii = items.length; i < ii; i++) {
                 if (filter(items[i], args)) {
@@ -673,9 +700,7 @@
         }
 
         function uncompiledFilterWithCaching(items, args, cache) {
-            var retval = [],
-                idx = 0,
-                item;
+            var retval = [], idx = 0, item;
 
             for (var i = 0, ii = items.length; i < ii; i++) {
                 item = items[i];
@@ -721,15 +746,14 @@
             }
 
             return {
-                totalRows: filteredItems.length,
-                rows: paged
+                totalRows : filteredItems.length,
+                rows : paged
             };
         }
 
         function getRowDiffs(rows, newRows) {
             var item, r, eitherIsNonData, diff = [];
-            var from = 0,
-                to = newRows.length;
+            var from = 0, to = newRows.length;
 
             if (refreshHints && refreshHints.ignoreDiffsBefore) {
                 from = Math.max(0, Math.min(newRows.length, refreshHints.ignoreDiffsBefore));
@@ -745,16 +769,14 @@
                 } else {
                     item = newRows[i];
                     r = rows[i];
-
-          if ((groupingInfos.length && (eitherIsNonData = (item.__nonDataRow) || (r.__nonDataRow)) &&
-              item.__group !== r.__group ||
-              item.__group && !item.equals(r))
-              || (eitherIsNonData &&
-                    // no good way to compare totals since they are arbitrary DTOs
-                    // deep object comparison is pretty expensive
-                    // always considering them 'dirty' seems easier for the time being
-                    (item.__groupTotals || r.__groupTotals)) || item[idProperty] != r[idProperty] || (updated && updated[item[idProperty]])) {
-                        diff[diff.length] = i;
+                    if (r !== undefined && item !== undefined) {
+                        if ((groupingInfos.length && ( eitherIsNonData = (item.__nonDataRow) || (r.__nonDataRow)) && item.__group !== r.__group || item.__group && !item.equals(r)) || (eitherIsNonData &&
+                        // no good way to compare totals since they are arbitrary DTOs
+                        // deep object comparison is pretty expensive
+                        // always considering them 'dirty' seems easier for the time being
+                        (item.__groupTotals || r.__groupTotals)) || item[idProperty] != r[idProperty] || (updated && updated[item[idProperty]])) {
+                            diff[diff.length] = i;
+                        }
                     }
                 }
             }
@@ -773,11 +795,11 @@
             var newRows = filteredItems.rows;
 
             groups = [];
-      if (groupingInfos.length) {
+            if (groupingInfos.length) {
                 groups = extractGroups(newRows);
                 if (groups.length) {
-          calculateTotals(groups);
-          finalizeGroups(groups);
+                    calculateTotals(groups);
+                    finalizeGroups(groups);
                     newRows = flattenGroupedRows(groups);
                 }
             }
@@ -797,7 +819,8 @@
             var countBefore = rows.length;
             var totalRowsBefore = totalRows;
 
-            var diff = recalc(items, filter); // pass as direct refs to avoid closure perf hit
+            var diff = recalc(items, filter);
+            // pass as direct refs to avoid closure perf hit
             // if the current page is no longer valid, go to last page and recalc
             // we suffer a performance penalty here, but the main loop (recalc) remains highly optimized
             if (pagesize && totalRows < pagenum * pagesize) {
@@ -814,20 +837,21 @@
             }
             if (countBefore != rows.length) {
                 onRowCountChanged.notify({
-                    previous: countBefore,
-                    current: rows.length
+                    previous : countBefore,
+                    current : rows.length
                 }, null, self);
             }
             if (diff.length > 0) {
                 onRowsChanged.notify({
-                    rows: diff
+                    rows : diff
                 }, null, self);
             }
         }
 
         function syncGridSelection(grid, preserveHidden) {
             var self = this;
-            var selectedRowIds = self.mapRowsToIds(grid.getSelectedRows());;
+            var selectedRowIds = self.mapRowsToIds(grid.getSelectedRows());
+            ;
             var inHandler;
 
             function update() {
@@ -842,8 +866,11 @@
                 }
             }
 
+
             grid.onSelectedRowsChanged.subscribe(function(e, args) {
-                if (inHandler) { return; }
+                if (inHandler) {
+                    return;
+                }
 
                 selectedRowIds = self.mapRowsToIds(grid.getSelectedRows());
             });
@@ -885,9 +912,14 @@
                 }
             }
 
+
             grid.onCellCssStylesChanged.subscribe(function(e, args) {
-                if (inHandler) { return; }
-                if (key != args.key) { return; }
+                if (inHandler) {
+                    return;
+                }
+                if (key != args.key) {
+                    return;
+                }
                 if (args.hash) {
                     storeCellCssStyles(args.hash);
                 }
@@ -900,50 +932,51 @@
 
         return {
             // methods
-            "beginUpdate": beginUpdate,
-            "endUpdate": endUpdate,
-            "setPagingOptions": setPagingOptions,
-            "getPagingInfo": getPagingInfo,
-            "getItems": getItems,
-            "setItems": setItems,
-            "setFilter": setFilter,
-            "sort": sort,
-            "fastSort": fastSort,
-            "reSort": reSort,
-      "setGrouping": setGrouping,
-      "getGrouping": getGrouping,
-            "groupBy": groupBy,
-            "setAggregators": setAggregators,
-      "collapseAllGroups": collapseAllGroups,
-      "expandAllGroups": expandAllGroups,
-            "collapseGroup": collapseGroup,
-            "expandGroup": expandGroup,
-            "getGroups": getGroups,
-            "getIdxById": getIdxById,
-            "getRowById": getRowById,
-            "getItemById": getItemById,
-            "getItemByIdx": getItemByIdx,
-            "mapRowsToIds": mapRowsToIds,
-            "mapIdsToRows": mapIdsToRows,
-            "setRefreshHints": setRefreshHints,
-            "setFilterArgs": setFilterArgs,
-            "refresh": refresh,
-            "updateItem": updateItem,
-            "insertItem": insertItem,
-            "addItem": addItem,
-            "deleteItem": deleteItem,
-            "syncGridSelection": syncGridSelection,
-            "syncGridCellCssStyles": syncGridCellCssStyles,
+            "beginUpdate" : beginUpdate,
+            "endUpdate" : endUpdate,
+            "setPagingOptions" : setPagingOptions,
+            "getPagingInfo" : getPagingInfo,
+            "getItems" : getItems,
+            "setItems" : setItems,
+            "setFilter" : setFilter,
+            "sort" : sort,
+            "fastSort" : fastSort,
+            "reSort" : reSort,
+            "setGrouping" : setGrouping,
+            "getGrouping" : getGrouping,
+            "groupBy" : groupBy,
+            "setAggregators" : setAggregators,
+            "collapseAllGroups" : collapseAllGroups,
+            "expandAllGroups" : expandAllGroups,
+            "collapseGroup" : collapseGroup,
+            "expandGroup" : expandGroup,
+            "getGroups" : getGroups,
+            "getIdxById" : getIdxById,
+            "getRowById" : getRowById,
+            "getItemById" : getItemById,
+            "getItemByIdx" : getItemByIdx,
+            "mapRowsToIds" : mapRowsToIds,
+            "mapIdsToRows" : mapIdsToRows,
+            "setRefreshHints" : setRefreshHints,
+            "setFilterArgs" : setFilterArgs,
+            "refresh" : refresh,
+            "updateItem" : updateItem,
+            "insertItem" : insertItem,
+            "addItem" : addItem,
+            "deleteItem" : deleteItem,
+            "syncGridSelection" : syncGridSelection,
+            "syncGridCellCssStyles" : syncGridCellCssStyles,
 
             // data provider methods
-            "getLength": getLength,
-            "getItem": getItem,
-            "getItemMetadata": getItemMetadata,
+            "getLength" : getLength,
+            "getItem" : getItem,
+            "getItemMetadata" : getItemMetadata,
+            "setItemMetadata" : setItemMetadata,
 
             // events
-            "onRowCountChanged": onRowCountChanged,
-            "onRowsChanged": onRowsChanged,
-            "onPagingInfoChanged": onPagingInfoChanged
+            "onRowCountChanged" : onRowCountChanged,
+            "onRowsChanged" : onRowsChanged,
+            "onPagingInfoChanged" : onPagingInfoChanged
         };
     }
 
@@ -959,7 +992,7 @@
         this.accumulate = function(item) {
             var val = item[this.field_];
             this.count_++;
-      if (val != null && val !== "" && val !== NaN) {
+            if (val != null && val !== "" && val !== NaN) {
                 this.nonNullCount_++;
                 this.sum_ += parseFloat(val);
             }
@@ -984,7 +1017,7 @@
 
         this.accumulate = function(item) {
             var val = item[this.field_];
-      if (val != null && val !== "" && val !== NaN) {
+            if (val != null && val !== "" && val !== NaN) {
                 if (this.min_ == null || val < this.min_) {
                     this.min_ = val;
                 }
@@ -1008,7 +1041,7 @@
 
         this.accumulate = function(item) {
             var val = item[this.field_];
-      if (val != null && val !== "" && val !== NaN) {
+            if (val != null && val !== "" && val !== NaN) {
                 if (this.max_ == null || val > this.max_) {
                     this.max_ = val;
                 }
@@ -1032,7 +1065,7 @@
 
         this.accumulate = function(item) {
             var val = item[this.field_];
-      if (val != null && val !== "" && val !== NaN) {
+            if (val != null && val !== "" && val !== NaN) {
                 this.sum_ += parseFloat(val);
             }
         };
