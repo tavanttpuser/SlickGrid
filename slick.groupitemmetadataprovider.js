@@ -48,7 +48,7 @@
         }
 
         function defaultTotalsCellFormatter(row, cell, value, columnDef, item) {
-            return (columnDef.groupTotalsFormatter && columnDef.groupTotalsFormatter(item, columnDef)) || "";
+             return (columnDef.groupTotalsFormatter && columnDef.groupTotalsFormatter(item, columnDef,row,cell)) || "";
         }
 
         function init(grid) {
