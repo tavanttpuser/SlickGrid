@@ -109,7 +109,7 @@
             startingIndex = startingIndex || 0;
             var id;
             for (var i = startingIndex, l = items.length; i < l; i++) {
-                if (items[i] !== undefined) {
+                if (items[i] !== undefined && !items[i].__nonDataRow) {
                     id = items[i][idProperty];
                     if (id === undefined) {
                         throw "Each data element must implement a unique 'id' property";
@@ -125,7 +125,7 @@
         function ensureIdUniqueness() {
             var id;
             for (var i = 0, l = items.length; i < l; i++) {
-                if (items[i] !== undefined) {
+                if (items[i] !== undefined && !items[i].__nonDataRow) {
                     id = items[i][idProperty];
                     if (id === undefined || idxById[id] !== i) {
                         throw "Each data element must implement a unique 'id' property";
@@ -136,6 +136,10 @@
 
         function getItems() {
             return items;
+        }
+
+        function getfilteredItems(){
+        	return filteredItems;
         }
 
         function setItems(data, objectIdProperty) {
@@ -392,10 +396,22 @@
             var item = rows[i];
             if (item !== undefined) {
                 for (var key in data) {
-                    if (rowMetaData[i] == undefined) {
-                        rowMetaData[i] = {};
+                    if (rowMetaData[item[idProperty]] == undefined) {
+                        rowMetaData[item[idProperty]] = {};
                     }
-                    rowMetaData[i][key] = data[key];
+                    rowMetaData[item[idProperty]][key] = data[key];
+                }
+            }
+        }
+        
+        function setItemMetadataByRowId(data, id) {
+            var item = getRowById(id);          
+            if (item !== undefined) {
+                for (var key in data) {
+                    if (rowMetaData[id] == undefined) {
+                        rowMetaData[id] = {};
+                    }
+                    rowMetaData[id][key] = data[key];
                 }
             }
         }
@@ -423,9 +439,8 @@
                 if (rowMetadata) {
                     return rowMetadata;
                 }
-            }
-
-            return rowMetaData[i];
+            }            
+            return rowMetaData[item[idProperty]];
         }
 
         function expandCollapseAllGroups(level, collapse) {
@@ -491,6 +506,13 @@
                 expandCollapseGroup(args.length - 1, args.join(groupingDelimiter), false);
             }
         }
+        
+        function parseGroupingKey(groupingKey){
+            if(groupingKey){
+                return groupingKey.split(groupingDelimiter);
+            };
+            return null;
+        }
 
         function getGroups() {
             return groups;
@@ -519,19 +541,21 @@
             }
 
             for (var i = 0, l = rows.length; i < l; i++) {
+               
                 r = rows[i];
-                val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
-                group = groupsByVal[val];
-                if (!group) {
-                    group = new Slick.Group();
-                    group.value = val;
-                    group.level = level;
-                    group.groupingKey = ( parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
-                    groups[groups.length] = group;
-                    groupsByVal[val] = group;
-                }
-
-                group.rows[group.count++] = r;
+                if (r) {
+                    val = gi.getterIsAFn ? gi.getter(r) : r[gi.getter];
+                    group = groupsByVal[val];
+                    if (!group) {
+                        group = new Slick.Group();
+                        group.value = val;
+                        group.level = level;
+                        group.groupingKey = ( parentGroup ? parentGroup.groupingKey + groupingDelimiter : '') + val;
+                        groups[groups.length] = group;
+                        groupsByVal[val] = group;
+                    }
+                    group.rows[group.count++] = r;
+                }              
             }
 
             if (level < groupingInfos.length - 1) {
@@ -778,6 +802,8 @@
                             diff[diff.length] = i;
                         }
                     }
+                    if((r === undefined && item) || (r && item === undefined))//addition/deletion
+                        diff[diff.length] = i;
                 }
             }
             return diff;
@@ -803,7 +829,7 @@
                     newRows = flattenGroupedRows(groups);
                 }
             }
-
+           
             var diff = getRowDiffs(rows, newRows);
 
             rows = newRows;
@@ -945,6 +971,7 @@
             "setGrouping" : setGrouping,
             "getGrouping" : getGrouping,
             "groupBy" : groupBy,
+            "parseGroupingKey" : parseGroupingKey,
             "setAggregators" : setAggregators,
             "collapseAllGroups" : collapseAllGroups,
             "expandAllGroups" : expandAllGroups,
@@ -972,6 +999,8 @@
             "getItem" : getItem,
             "getItemMetadata" : getItemMetadata,
             "setItemMetadata" : setItemMetadata,
+            "setItemMetadataByRowId" : setItemMetadataByRowId,
+            'getfilteredItems':getfilteredItems,
 
             // events
             "onRowCountChanged" : onRowCountChanged,

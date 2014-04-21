@@ -90,7 +90,8 @@ if ( typeof Slick === "undefined") {
                 forceSyncScrolling : false,
                 //options added to enable or disable scrollbars
                 enableVScroll : true,
-                enableHScroll : true
+                enableHScroll : true,
+                supportsChildGrids:false
             };
 
             var columnDefaults = {
@@ -426,6 +427,7 @@ if ( typeof Slick === "undefined") {
                     $headerScroller.bind("contextmenu.slickgrid", handleHeaderContextMenu).bind("click.slickgrid", handleHeaderClick).delegate(".slick-header-column", "mouseenter", handleHeaderMouseEnter).delegate(".slick-header-column", "mouseleave", handleHeaderMouseLeave);
                     $headerRowScroller.bind("scroll", handleHeaderRowScroll);
                     $focusSink.add($focusSink2).bind("keydown", handleKeyDown);
+                    
                     $canvas.bind("keydown", handleKeyDown).bind("click", handleClick).bind("dblclick", handleDblClick).bind("contextmenu", handleContextMenu)
                     /*      .bind("draginit", handleDragInit)
                      .bind("dragstart", handleDragStart)
@@ -1213,9 +1215,22 @@ if ( typeof Slick === "undefined") {
 
                         updateCanvasWidth(true);
                         render();
-                        trigger(self.onColumnsResized, {});
+                        fitToWidthIfNeeded();
+						trigger(self.onColumnsResized, {});
                     });
                 });
+            }
+            function fitToWidthIfNeeded(){
+            	var c,colsWidth=0,i;
+            	for ( i = 0; i < columns.length; i++) {
+                    c = columns[i];
+                    colsWidth += c.width;
+                }
+                
+                var  availWidth = viewportHasVScroll ? viewportW - scrollbarDimensions.width : viewportW
+                if (colsWidth<availWidth){
+                	 autosizeColumns();
+                }
             }
 
             function getVBoxDelta($el) {
@@ -1453,7 +1468,7 @@ if ( typeof Slick === "undefined") {
                     unregisterPlugin(plugins[i]);
                 }
 
-                if (options.enableColumnReorder && $headers.sortable) {
+                if (options.enableColumnReorder && $headers.hasClass("ui-sortable")) { 
                     $headers.sortable("destroy");
                 }
 
@@ -2674,6 +2689,8 @@ if ( typeof Slick === "undefined") {
                 scrollLeft = $viewportScrollContainerX[0].scrollLeft;
                 _handleScroll();
             }
+			
+			
 
             function _handleScroll() {
                 var maxScrollDistanceY = $viewportScrollContainerY[0].scrollHeight - $viewportScrollContainerY[0].clientHeight;
@@ -2996,8 +3013,18 @@ if ( typeof Slick === "undefined") {
                     }
                 }
             }
+            function isEventFromChildGrid(event){
+            	if (options.supportsChildGrids==false)return false;
+            	var firstPane=$(event.target).parents(".slick-pane")[0];
+            	var grid=$(firstPane).parent();
+            	return (grid.attr("id")!=$container.attr("id"));
+            }
 
             function handleClick(e) {
+            	console.trace();
+            	if (isEventFromChildGrid(e)){//added to suport child grids. Parent grid should not respond to events of child grids.
+            		return;
+            	}
                 if (!currentEditor) {
                     // if this click resulted in some cell child node getting focus,
                     // don't steal it back - keyboard events will still bubble up
@@ -3034,6 +3061,9 @@ if ( typeof Slick === "undefined") {
             }
 
             function handleContextMenu(e) {
+            	if (isEventFromChildGrid(e)){//added to suport child grids. Parent grid should not respond to events of child grids.
+            		return;
+            	}
                 var $cell = $(e.target).closest(".slick-cell", $canvas);
                 if ($cell.length === 0) {
                     return;
@@ -3048,6 +3078,9 @@ if ( typeof Slick === "undefined") {
             }
 
             function handleDblClick(e) {
+            	if (isEventFromChildGrid(e)){//added to suport child grids. Parent grid should not respond to events of child grids.
+            		return;
+            	}
                 var cell = getCellFromEvent(e);
                 if (!cell || (currentEditor !== null && activeRow == cell.row && activeCell == cell.cell)) {
                     return;
@@ -3559,6 +3592,14 @@ if ( typeof Slick === "undefined") {
                 scrollTo(rowPositionCache[row].top);
                 render();
             }
+			
+			function scrollToLastRendered() {
+			  if (lastRenderedScrollTop) {
+				prevScrollTop = 0;
+				scrollTo(lastRenderedScrollTop);
+				}
+			}
+
 
             function getColspan(row, cell) {
                 var metadata = data.getItemMetadata && data.getItemMetadata(row);
@@ -4077,8 +4118,11 @@ if ( typeof Slick === "undefined") {
                 vp.VScroll = viewportHasVScroll;
                 return vp;
             };
-            // ////////////////////////////////////////////////////////////////////////////////////////////
+           // ////////////////////////////////////////////////////////////////////////////////////////////
             // Public API
+            function getVisibleRowCount() {
+                return numVisibleRows;
+            }
 
             $.extend(this, {
                 "slickGridVersion" : "2.1",
@@ -4157,7 +4201,8 @@ if ( typeof Slick === "undefined") {
                 "resizeCanvas" : resizeCanvas,
                 "updateRowCount" : updateRowCount,
                 "scrollRowIntoView" : scrollRowIntoView,
-                "scrollRowToTop" : scrollRowToTop,
+				"scrollToLastRendered":scrollToLastRendered,
+				"scrollRowToTop" : scrollRowToTop,
                 "scrollCellIntoView" : scrollCellIntoView,
                 "getCanvasNode" : getCanvasNode,
                 "getCanvases" : getCanvases,
@@ -4208,7 +4253,9 @@ if ( typeof Slick === "undefined") {
                 "getEditController" : getEditController,
                 "handleScroll" : handleScroll,
                 "getScrollbarDimensions" : getScrollbarDimensions,
-                "getViewPortScrollInfo" : getViewPortScrollInfo,
+                "getViewPortScrollInfo" : getViewPortScrollInfo,                
+                "getVisibleRowCount" : getVisibleRowCount,
+				
             });
 
             init();

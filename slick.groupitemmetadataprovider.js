@@ -44,7 +44,7 @@
 
             var indentation = item.level * 15 + "px";
 
-            return "<span class='" + options.toggleCssClass + " " + (item.collapsed ? options.toggleCollapsedCssClass : options.toggleExpandedCssClass) + "' style='margin-left:" + indentation + "'>" + "</span>" + "<span class='" + options.groupTitleCssClass + "' level='" + item.level + "'>" + item.title + "</span>";
+            return "<span row='"+row+"'class='" + options.toggleCssClass + " " + (item.collapsed ? options.toggleCollapsedCssClass : options.toggleExpandedCssClass) + "' style='margin-left:" + indentation + "'>" + "</span>" + "<span class='" + options.groupTitleCssClass + "' level='" + item.level + "'>" + item.title + "</span>";
         }
 
         function defaultTotalsCellFormatter(row, cell, value, columnDef, item) {
@@ -109,7 +109,7 @@
 
         function getGroupRowMetadata(item) {
             return {
-                selectable : false,
+                selectable : options.groupRowSelectable,
                 focusable : options.groupFocusable,
                 cssClasses : options.groupCssClass,
                 columns : {
@@ -124,7 +124,7 @@
 
         function getTotalsRowMetadata(item) {
             return {
-                selectable : false,
+                selectable : options.groupTotalsRowSelectable,
                 focusable : options.totalsFocusable,
                 cssClasses : options.totalsCssClass,
                 formatter : defaultTotalsCellFormatter,
